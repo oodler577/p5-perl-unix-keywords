@@ -1,9 +1,0 @@
-Perl-Unix-Keywords
-==================
-
-Prototype-based Unix-shaped verbs for Perl: walk, group, uniq, and xargs.
-
-The authoritative documentation is in lib/Perl/Unix/Keywords.pm.
-
-This distribution requires Perl 5.10 or later and has no non-core runtime
-dependencies.
