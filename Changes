@@ -1,0 +1,8 @@
+Revision history for Perl-Unix-Keywords
+
+0.01 2026-09-05
+     - initial release
+     - added prototype-based walk, group, uniq, and xargs operations
+     - added POD describing semantics, context behavior, composition, and limitations
+     - added regression tests for prototypes, traversal, grouping, canonicalization,
+       subprocess execution, errors, and composition

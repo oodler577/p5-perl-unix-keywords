@@ -1,0 +1,52 @@
+use strict;
+use warnings;
+use Test::More;
+use File::Spec;
+use File::Temp qw(tempdir);
+use Perl::Unix::Keywords;
+
+my $dir = tempdir(CLEANUP => 1);
+my $out = File::Spec->catfile($dir, 'argv.txt');
+
+my $program = q{
+    my $out = shift @ARGV;
+    open my $fh, '>', $out or die "open: $!";
+    print {$fh} join("\n", @ARGV);
+    close $fh or die "close: $!";
+};
+
+my @items = ('plain', 'with space', q{semi;colon}, q{$dollar});
+my $rc = xargs [ $^X, '-e', $program, $out ] => @items;
+is $rc, 0, 'arrayref command exits successfully';
+
+open my $fh, '<', $out or die "open $out: $!";
+my @got = <$fh>;
+close $fh;
+chomp @got;
+is_deeply \@got, \@items, 'arguments arrive literally without shell interpolation';
+
+$rc = xargs $^X => '-e', 'exit 0';
+is $rc, 0, 'scalar executable command works';
+
+$rc = xargs $^X => '-e', 'exit 7';
+is $rc >> 8, 7, 'raw system status preserves child exit status';
+
+my $marker = File::Spec->catfile($dir, 'should-not-exist');
+my $touch = q{open my $fh, '>', shift @ARGV or die $!; close $fh};
+$rc = xargs [ $^X, '-e', $touch, $marker ] => ();
+is $rc, 0, 'empty input is successful no-op';
+ok !-e $marker, 'empty input does not invoke subprocess';
+
+my $ok = eval { xargs [] => qw(a); 1 };
+ok !$ok, 'empty command arrayref throws';
+like $@, qr/must not be empty/, 'empty-array diagnostic';
+
+$ok = eval { xargs {} => qw(a); 1 };
+ok !$ok, 'unsupported command reference throws';
+like $@, qr/scalar executable name or an array reference/, 'unsupported-reference diagnostic';
+
+$ok = eval { xargs q{} => qw(a); 1 };
+ok !$ok, 'empty scalar command throws';
+like $@, qr/command must not be empty/, 'empty-scalar diagnostic';
+
+done_testing;
