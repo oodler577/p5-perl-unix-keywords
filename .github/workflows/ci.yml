@@ -1,0 +1,90 @@
+name: CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: ${{ matrix.os }} / Perl ${{ matrix.perl }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            perl: '5.10'
+          - os: ubuntu-latest
+            perl: '5.40'
+          - os: ubuntu-latest
+            perl: '5.42'
+          - os: windows-latest
+            perl: '5.32'
+          - os: windows-latest
+            perl: '5.40'
+          - os: windows-latest
+            perl: '5.42'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Perl
+        uses: shogo82148/actions-setup-perl@v1
+        with:
+          perl-version: ${{ matrix.perl }}
+
+      - name: Environment
+        shell: bash
+        run: |
+          perl -V
+          perl -MConfig -e 'print "os=$^O\nmake=$Config{make}\ncc=$Config{cc}\n"'
+
+      - name: Install test dependencies
+        shell: bash
+        run: cpanm --notest Test::More File::Temp File::Path
+
+      - name: Test source tree verbosely
+        shell: bash
+        run: prove -lrv t
+
+  dist-test:
+    name: Distribution / ${{ matrix.os }} / Perl ${{ matrix.perl }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            perl: '5.42'
+          - os: windows-latest
+            perl: '5.42'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Perl
+        uses: shogo82148/actions-setup-perl@v1
+        with:
+          perl-version: ${{ matrix.perl }}
+
+      - name: Install Dist::Zilla and dependencies
+        shell: bash
+        run: |
+          cpanm --notest Dist::Zilla Dist::Zilla::Plugin::GithubMeta
+          dzil authordeps --missing | cpanm --notest
+          dzil listdeps --missing | cpanm --notest
+
+      - name: Build distribution
+        shell: bash
+        run: dzil build --no-tgz
+
+      - name: Test generated distribution
+        shell: bash
+        run: |
+          cd Perl-Unix-Keywords-*
+          perl Makefile.PL
+          MAKE="$(perl -MConfig -e 'print $Config{make}')"
+          "$MAKE"
+          "$MAKE" test TEST_VERBOSE=1

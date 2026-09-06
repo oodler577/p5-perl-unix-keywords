@@ -29,14 +29,19 @@ my %groups = group { /([.]\w+)\z/ ? $1 : q{} } @files;
 is_deeply $groups{'.tmp'}, [ $files[0], $files[2] ], 'group consumes ordinary list output';
 
 my $out = File::Spec->catfile($root, 'seen.txt');
-my $program = q{
-    my $out = shift @ARGV;
-    open my $fh, '>', $out or die $!;
-    print {$fh} join("\n", @ARGV);
-    close $fh or die $!;
-};
+my $helper = File::Spec->catfile($root, 'write-seen.pl');
+open my $script, '>', $helper or die "open $helper: $!";
+print {$script} <<'PERL';
+use strict;
+use warnings;
+my $out = shift @ARGV;
+open my $fh, '>', $out or die "open $out: $!";
+print {$fh} join("\n", @ARGV);
+close $fh or die "close $out: $!";
+PERL
+close $script or die "close $helper: $!";
 
-my $rc = xargs [ $^X, '-e', $program, $out ] => walk {
+my $rc = xargs [ $^X, $helper, $out ] => walk {
     -f $_ && /[.]tmp\z/ ? $_ : ();
 } $root;
 is $rc, 0, 'walk output can feed xargs directly';
