@@ -1,5 +1,16 @@
 Revision history for Perl-Unix-Keywords
 
+0.02 2026-09-06
+     - fixed Win32 xargs argument preservation when argv values contain embedded
+       double quotes; preserve backslashes preceding embedded quotes according
+       to Win32 C-runtime command-line parsing rules
+     - fixed Windows portability in xargs/composition tests by using helper
+       scripts instead of multiline perl -e command strings
+     - added a dedicated MSWin32 argv regression test covering spaces, shell
+       metacharacters, quotes, and backslashes
+     - added GitHub Actions CI across Linux and native MSWin32 Perl, including
+       source-tree and generated-distribution testing
+
 0.01 2026-09-05
      - initial release
      - added prototype-based walk, group, uniq, and xargs operations

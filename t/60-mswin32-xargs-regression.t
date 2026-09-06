@@ -36,6 +36,8 @@ my @args = (
     q{double"quote},
     q{single'quote},
     'backslash\\value',
+    q{backslash\\"quote},
+    q{space and \"quote},
 );
 
 my $status = xargs [ $^X, $helper, $out ] => @args;

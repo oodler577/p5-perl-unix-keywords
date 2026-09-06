@@ -8,7 +8,7 @@ use Carp qw(croak);
 use Exporter qw(import);
 use File::Spec ();
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 our @EXPORT    = qw(walk group uniq xargs);
 our @EXPORT_OK = @EXPORT;
@@ -144,7 +144,26 @@ sub xargs ($@) {
     return 0 if !@items;
 
     my @argv = (@prefix, @items);
+
+    # Win32's CreateProcess() receives a single command-line string rather
+    # than a native argv array. Perl emulates list-form system() there.
+    # Embedded double quotes therefore need C-runtime escaping before Perl
+    # serializes the list, otherwise a quote can consume following argv
+    # elements. Preserve existing backslashes according to the usual Win32
+    # argv rule: N backslashes before a quote become 2N+1 backslashes.
+    if ($^O eq q{MSWin32}) {
+        @argv = map { _win32_escape_embedded_quotes($_) } @argv;
+    }
+
     return system { $argv[0] } @argv;
+}
+
+sub _win32_escape_embedded_quotes {
+    my ($arg) = @_;
+    return $arg if !defined $arg || index($arg, q{"}) < 0;
+
+    $arg =~ s{(\\*)"}{$1$1\\"}g;
+    return $arg;
 }
 
 1;
@@ -159,7 +178,7 @@ Perl::Unix::Keywords - Prototype-based Unix-shaped verbs for Perl lists, trees, 
 
 =head1 VERSION
 
-Version 0.01
+Version 0.02
 
 =head1 SYNOPSIS
 
