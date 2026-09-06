@@ -10,4 +10,4 @@ ok defined &walk,  'walk exported';
 ok defined &group, 'group exported';
 ok defined &uniq,  'uniq exported';
 ok defined &xargs, 'xargs exported';
-is $Perl::Unix::Keywords::VERSION, '0.02', 'version is expected';
+is $Perl::Unix::Keywords::VERSION, '0.01', 'version is expected';

@@ -6,7 +6,3 @@ Revision history for Perl-Unix-Keywords
      - added POD describing semantics, context behavior, composition, and limitations
      - added regression tests for prototypes, traversal, grouping, canonicalization,
        subprocess execution, errors, and composition
-
-0.02 2026-09-05
-     - fix Windows Strawberry Perl failures
-     - added ci, regression testing

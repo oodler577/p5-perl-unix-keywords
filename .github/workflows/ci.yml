@@ -35,18 +35,18 @@ jobs:
         with:
           perl-version: ${{ matrix.perl }}
 
+      # Do not force Git Bash on Windows.  Git Bash can resolve its own
+      # Cygwin/MSYS perl ahead of the MSWin32 perl installed above, which
+      # defeats the purpose of testing Strawberry-compatible behavior.
       - name: Environment
-        shell: bash
         run: |
           perl -V
           perl -MConfig -e 'print "os=$^O\nmake=$Config{make}\ncc=$Config{cc}\n"'
 
       - name: Install test dependencies
-        shell: bash
         run: cpanm --notest Test::More File::Temp File::Path
 
       - name: Test source tree verbosely
-        shell: bash
         run: prove -lrv t
 
   dist-test:
@@ -69,18 +69,22 @@ jobs:
         with:
           perl-version: ${{ matrix.perl }}
 
+      - name: Verify selected Perl
+        run: |
+          perl -MConfig -e 'print "os=$^O\nmake=$Config{make}\n"'
+          perl -e 'die "Windows CI is not using MSWin32 perl\n" if $^O eq "cygwin" || $^O eq "msys"'
+
       - name: Install Dist::Zilla and dependencies
-        shell: bash
         run: |
           cpanm --notest Dist::Zilla Dist::Zilla::Plugin::GithubMeta
           dzil authordeps --missing | cpanm --notest
           dzil listdeps --missing | cpanm --notest
 
       - name: Build distribution
-        shell: bash
         run: dzil build --no-tgz
 
-      - name: Test generated distribution
+      - name: Test generated distribution (Linux)
+        if: runner.os != 'Windows'
         shell: bash
         run: |
           cd Perl-Unix-Keywords-*
@@ -88,3 +92,17 @@ jobs:
           MAKE="$(perl -MConfig -e 'print $Config{make}')"
           "$MAKE"
           "$MAKE" test TEST_VERBOSE=1
+
+      - name: Test generated distribution (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $dist = Get-ChildItem -Directory 'Perl-Unix-Keywords-*' | Select-Object -First 1
+          if (-not $dist) { throw 'Built distribution directory not found' }
+          Set-Location $dist.FullName
+          perl Makefile.PL
+          $make = perl -MConfig -e 'print $Config{make}'
+          & $make
+          if ($LASTEXITCODE -ne 0) { throw "make failed with exit code $LASTEXITCODE" }
+          & $make test TEST_VERBOSE=1
+          if ($LASTEXITCODE -ne 0) { throw "make test failed with exit code $LASTEXITCODE" }
