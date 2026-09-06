@@ -8,7 +8,7 @@ use Carp qw(croak);
 use Exporter qw(import);
 use File::Spec ();
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 our @EXPORT    = qw(walk group uniq xargs);
 our @EXPORT_OK = @EXPORT;
