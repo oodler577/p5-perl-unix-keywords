@@ -8,7 +8,7 @@ use Carp qw(croak);
 use Exporter qw(import);
 use File::Spec ();
 
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 
 our @EXPORT    = qw(walk group uniq xargs);
 our @EXPORT_OK = @EXPORT;
@@ -145,25 +145,21 @@ sub xargs ($@) {
 
     my @argv = (@prefix, @items);
 
-    # Win32's CreateProcess() receives a single command-line string rather
-    # than a native argv array. Perl emulates list-form system() there.
-    # Embedded double quotes therefore need C-runtime escaping before Perl
-    # serializes the list, otherwise a quote can consume following argv
-    # elements. Preserve existing backslashes according to the usual Win32
-    # argv rule: N backslashes before a quote become 2N+1 backslashes.
+    # Native Win32 does not pass an argv array to CreateProcess(). Perl must
+    # serialize LIST-form system() arguments into a command line and then
+    # decide whether cmd.exe is required. Those quoting rules are subtle, in
+    # particular when spaces, quotes, and backslashes occur together.
+    # Win32::ShellQuote deliberately mirrors Perl's Win32 dispatch behavior
+    # and quotes the complete argument vector as one operation. Do not
+    # pre-escape individual arguments here; that introduces a second quoting
+    # layer and corrupts combinations such as: space and \"quote.
     if ($^O eq q{MSWin32}) {
-        @argv = map { _win32_escape_embedded_quotes($_) } @argv;
+        require Win32::ShellQuote;
+        my @quoted = Win32::ShellQuote::quote_system(@argv);
+        return system @quoted;
     }
 
     return system { $argv[0] } @argv;
-}
-
-sub _win32_escape_embedded_quotes {
-    my ($arg) = @_;
-    return $arg if !defined $arg || index($arg, q{"}) < 0;
-
-    $arg =~ s{(\\*)"}{$1$1\\"}g;
-    return $arg;
 }
 
 1;
@@ -178,7 +174,7 @@ Perl::Unix::Keywords - Prototype-based Unix-shaped verbs for Perl lists, trees, 
 
 =head1 VERSION
 
-Version 0.02
+Version 0.03
 
 =head1 SYNOPSIS
 

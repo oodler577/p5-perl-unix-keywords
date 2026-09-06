@@ -1,6 +1,6 @@
 Revision history for Perl-Unix-Keywords
 
-0.02 2026-09-06
+0.03 2026-09-06
      - fixed Win32 xargs argument preservation when argv values contain embedded
        double quotes; preserve backslashes preceding embedded quotes according
        to Win32 C-runtime command-line parsing rules
